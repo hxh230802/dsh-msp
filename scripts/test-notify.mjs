@@ -1,0 +1,94 @@
+/** 通知器自测：挑节点、节流、失败不抛、内容截断。 */
+import { strict as assert } from "node:assert";
+
+import { createNotifier, extractText } from "../lib/notify.js";
+
+function fakePeer(nodeId, { connected = true, tools = [], fail = null, record } = {}) {
+  return {
+    nodeId,
+    connected,
+    toolMeta: new Map(tools.map((t) => [`msp_${nodeId}_${t}`, { mspName: t }])),
+    peer: {
+      callTool: async (tool, args) => {
+        if (fail) throw fail;
+        if (record) record.push({ nodeId, tool, args });
+        return { content: [], structuredContent: { ok: true } };
+      },
+    },
+  };
+}
+
+// 1. 优先用配置里指定的节点
+{
+  const hits = [];
+  const peers = [
+    fakePeer("other", { tools: ["notify"], record: hits }),
+    fakePeer("notchpeninsula", { tools: ["notify", "media_control"], record: hits }),
+  ];
+  const n = createNotifier({ getPeers: () => peers, config: { notifyNode: "notchpeninsula", minIntervalMs: 0 } });
+  assert.ok(await n.fire("info", "标题", "正文"));
+  assert.equal(hits.length, 1);
+  assert.equal(hits[0].nodeId, "notchpeninsula");
+  assert.equal(hits[0].tool, "notify");
+  assert.equal(hits[0].args.kind, "info");
+  assert.equal(hits[0].args.title, "标题");
+  assert.equal(hits[0].args.body, "正文");
+}
+
+// 2. 指定节点没连上 → 退回到任意有 notify 的已连节点
+{
+  const hits = [];
+  const peers = [
+    fakePeer("notchpeninsula", { connected: false, tools: ["notify"] }),
+    fakePeer("other", { tools: ["notify"], record: hits }),
+  ];
+  const n = createNotifier({ getPeers: () => peers, config: { minIntervalMs: 0 } });
+  assert.ok(await n.fire("info", "t", "b"));
+  assert.equal(hits[0].nodeId, "other");
+}
+
+// 3. 没有节点有 notify 能力 → 安静返回 false
+{
+  const peers = [fakePeer("a", { tools: ["ping"] })];
+  const n = createNotifier({ getPeers: () => peers, config: { minIntervalMs: 0 } });
+  assert.equal(await n.fire("info", "t", "b"), false);
+}
+
+// 4. 节流：同一标题在窗口内只发一次
+{
+  const hits = [];
+  const peers = [fakePeer("n", { tools: ["notify"], record: hits })];
+  const n = createNotifier({ getPeers: () => peers, config: { minIntervalMs: 10_000 } });
+  assert.ok(await n.fire("info", "同一标题", "b"));
+  assert.equal(await n.fire("info", "同一标题", "b"), false);
+  assert.equal(hits.length, 1);
+}
+
+// 5. 底层抛错 → 返回 false 且交给 onError，绝不向上抛
+{
+  const errors = [];
+  const peers = [fakePeer("n", { tools: ["notify"], fail: new Error("boom") })];
+  const n = createNotifier({ getPeers: () => peers, config: { minIntervalMs: 0 }, onError: (e) => errors.push(e.message) });
+  assert.equal(await n.fire("info", "t", "b"), false);
+  assert.deepEqual(errors, ["boom"]);
+}
+
+// 6. 正文字数截断 + 空白折叠
+{
+  const hits = [];
+  const peers = [fakePeer("n", { tools: ["notify"], record: hits })];
+  const n = createNotifier({ getPeers: () => peers, config: { minIntervalMs: 0, maxBodyChars: 10 } });
+  await n.fire("info", "t", "一二三四五\n\n 六七八九十甲乙丙");
+  assert.equal(hits[0].args.body.length, 10);
+  assert.ok(hits[0].args.body.endsWith("…"));
+}
+
+// 7. payload 提取：各种形状都要能挖出一句话
+{
+  assert.equal(extractText({ question: "要删吗？" }), "要删吗？");
+  assert.equal(extractText({ args: { questions: [{ question: "选哪个" }] } }), "选哪个");
+  assert.equal(extractText({ tool: "rm", args: { path: "/x" } }), "rm");
+  assert.equal(extractText(null), "");
+}
+
+console.log("通知器 OK：挑节点 / 回退 / 无能力 / 节流 / 异常吞掉 / 截断 / payload 提取");

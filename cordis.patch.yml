@@ -5,12 +5,19 @@
       name: dsh-msp
       config:
         nodesDir: ~/.msp/nodes
-        includeNodes: []        # 非空 = 只连这些节点（白名单）
-        excludeNodes: []        # 黑名单，例如 [test.node1, demo_signals]
+        includeNodes: []
+        excludeNodes: []
         toolPrefix: msp_
         discoveryMs: 3000
         callTimeoutMs: 30000
         retryMs: 3000
         staleAfterMs: 30000
         maxPeers: 16
-        verbose: false
+        # —— 通知：把"需要你"的瞬间弹到灵动岛 ——
+        notifyNode: notchpeninsula      # 用哪个节点弹（没连上会自动找别的）
+        notifyMinIntervalMs: 3000       # 同类通知的最小间隔
+        notifyOnApproval: true          # 有操作等你确认
+        notifyOnQuestion: true          # 模型在问你问题
+        notifyOnTurnEnd: true           # 一轮任务结束
+        turnEndMinMs: 20000             # 只有跑够这么久才提醒，避免刷屏
+        verbose: false                  # 打开会把每次事件首次命中的 payload 打进日志
