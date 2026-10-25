@@ -6,7 +6,8 @@
   "type": "module",
   "main": "lib/index.js",
   "exports": {
-    ".": "./lib/index.js"
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js"
   },
   "files": [
     "lib",
@@ -22,6 +23,17 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-renderer"
+      ]
     }
+  },
+  "scripts": {
+    "test": "node scripts/test-routes.mjs && node scripts/test-client.mjs",
+    "smoke": "node scripts/smoke.mjs"
   }
 }
