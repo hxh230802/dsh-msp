@@ -59,15 +59,34 @@ dsh --profile <profile> --dump-config | grep -A8 'id: dsh-msp'   # 确认配置�
 |---|---|
 | **节点/工具关系图** | 中心是本插件，外围每个 CIRCLE 是一个 MSP 节点；实线 = 已连接，虚线 = 断开；圆的大小随工具数增长，圈内数字是工具数 |
 | **权限与工具** | 每个节点一行：状态点、地址、启用/禁用按钮、该节点宣告的工具（含参数名，hover 看描述）。点"已启用"→ 断开该节点并摘掉它的工具 |
+| **通知开关** | 三个独立开关：有操作等我确认 / 模型在问我问题 / 任务完成（仅长任务） |
 | **最近调用** | 时间 / 节点 / 工具名 / 耗时或错误，来自 host 侧记录的最后 40 条 |
 | **发现目录** | 声明文件里的全部节点与租约年龄（含过期未清理的） |
 
-数据通路：host 注册两条路由，页面每 2 秒轮询一次。
+数据通路：host 注册三条路由，页面每 2 秒轮询一次。
 
 ```
-GET  /msp/state   → { ok, peers[], calls[], discovered[], policy }
-POST /msp/node    → { nodeId, enabled }  改权限，立刻重连/断开
+GET  /msp/state   → { ok, peers[], calls[], discovered[], policy, notify }
+POST /msp/node    → { nodeId, enabled }   改权限，立刻重连/断开
+POST /msp/notify  → { key, enabled }      或 { approval|question|turnEnd: boolean }  开关通知
 ```
+
+## 通知开关（用户可关）
+
+三个场景各一个开关，面板上直接点：
+
+| 开关 | 触发事件 | 说明 |
+|---|---|---|
+| 有操作等我确认 | `approval/asked` | 审批被挂起时弹 |
+| 模型在问我问题 | `tools/pre-execute` 且工具是 `ask_user_question` | 弹问题原文 |
+| 任务完成 | `turn/end` | 仅本轮 ≥ `turnEndMinMs`（默认 20s）时弹，避免刷屏 |
+
+**优先级**：面板里点过的选择 > `cordis.patch.yml` 里的 `notifyOn*` 默认值。
+选择落在 `~/.dsh/dsh-msp/notify.json`，重启后保持——否则每次重启都把用户关掉的
+提醒又打开，开关就没意义了。文件缺失/损坏时退回默认值，不会拖垮插件启动。
+
+通知走的是 MSP 的 `notify`：host 直接调节点，**不经过模型、不烧 token、不占回合**。
+节流默认 3 秒（同标题），节点没连上时自动找别的有 `notify` 能力的节点。
 
 浏览器半端是手写的 CJS bundle（`lib/client.js`，`window.__ModuleLoader__.load` 包装，
 `react` 由宿主 `require` 提供），**不需要构建工具链**。

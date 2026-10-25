@@ -33,7 +33,7 @@
     }
   },
   "scripts": {
-    "test": "node scripts/test-routes.mjs && node scripts/test-client.mjs && node scripts/test-notify.mjs",
+    "test": "node scripts/test-routes.mjs && node scripts/test-client.mjs && node scripts/test-notify.mjs && node scripts/test-prefs.mjs",
     "smoke": "node scripts/smoke.mjs"
   }
 }
