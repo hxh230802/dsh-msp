@@ -91,4 +91,30 @@ function fakePeer(nodeId, { connected = true, tools = [], fail = null, record } 
   assert.equal(extractText(null), "");
 }
 
-console.log("通知器 OK：挑节点 / 回退 / 无能力 / 节流 / 异常吞掉 / 截断 / payload 提取");
+// 8. 图标：配置了 iconPath 就随 content 发 image 块，role 必须是 icon
+{
+  const hits = [];
+  const peers = [fakePeer("n", { tools: ["notify"], record: hits })];
+  const n = createNotifier({
+    getPeers: () => peers,
+    config: { minIntervalMs: 0, iconPath: "assets/notify-icon-64.png" },
+  });
+  await n.fire("info", "带图标", "正文");
+  const content = hits[0].args.content;
+  assert.ok(Array.isArray(content) && content.length === 1, "应带 1 个 content 块");
+  assert.equal(content[0].type, "image");
+  assert.equal(content[0].mimeType, "image/png");
+  assert.equal(content[0].annotations.role, "icon");
+  assert.ok(content[0].data.length > 1000, "base64 应有内容");
+}
+
+// 9. 图标文件不存在 → 不带 content 也要能发出去
+{
+  const hits = [];
+  const peers = [fakePeer("n", { tools: ["notify"], record: hits })];
+  const n = createNotifier({ getPeers: () => peers, config: { minIntervalMs: 0, iconPath: "不存在.png" } });
+  assert.equal((await n.fire("info", "无图标", "正文")).sent, true);
+  assert.equal(hits[0].args.content, undefined);
+}
+
+console.log("通知器 OK：挑节点 / 回退 / 无能力 / 节流 / 异常吞掉 / 截断 / payload 提取 / 图标块 / 图标缺失");

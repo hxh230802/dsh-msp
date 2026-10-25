@@ -15,6 +15,8 @@
         maxPeers: 16
         # —— 通知：把"需要你"的瞬间弹到灵动岛 ——
         notifyNode: notchpeninsula      # 用哪个节点弹（没连上会自动找别的）
+        notifyIcon: true                # 通知带鲸鱼娘图标（包内 assets/）
+        notifyIconPath: null            # 想换图就填绝对路径
         notifyMinIntervalMs: 3000       # 同类通知的最小间隔
         notifyOnApproval: true          # 有操作等你确认
         notifyOnQuestion: true          # 模型在问你问题

@@ -86,6 +86,16 @@ POST /msp/notify  → { key, enabled }      或 { approval|question|turnEnd: boo
 提醒又打开，开关就没意义了。文件缺失/损坏时退回默认值，不会拖垮插件启动。
 
 通知走的是 MSP 的 `notify`：host 直接调节点，**不经过模型、不烧 token、不占回合**。
+
+**图标**：每条通知都带 `assets/notify-icon-64.png`。MCP content 块里
+`annotations.role = "icon"` 的 image 块会被对端当成通知图标（对端回报
+`"icon": "内联图(N 字符)"` 即表示收到了）。换图两种方式：
+
+```yaml
+notifyIcon: true
+notifyIconPath: C:/path/to/your.png   # 绝对路径覆盖内置图
+# 或者 notifyIcon: false 完全不带图
+```
 节流默认 3 秒（同标题），节点没连上时自动找别的有 `notify` 能力的节点。
 
 浏览器半端是手写的 CJS bundle（`lib/client.js`，`window.__ModuleLoader__.load` 包装，
