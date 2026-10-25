@@ -1,0 +1,13 @@
+# dsh-msp：把 MSP 网关的工具接到 DeepSeek Harness
+# 行按 id 定位；后写覆盖先写，config 整行替换（不合并）。
+- insert:
+    - id: dsh-msp
+      name: dsh-msp
+      config:
+        nodesDir: ~/.msp/nodes
+        gateway: gateway
+        toolPrefix: msp_
+        exclude: []
+        callTimeoutMs: 30000
+        retryMs: 3000
+        verbose: false

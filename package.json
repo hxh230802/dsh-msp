@@ -1,0 +1,27 @@
+{
+  "name": "dsh-msp",
+  "version": "0.1.0",
+  "description": "把 MSP 网关挂载的设备工具（含 ESP32）暴露成 DeepSeek Harness 工具",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh-plugin",
+    "msp",
+    "esp32"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
