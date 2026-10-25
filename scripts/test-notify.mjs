@@ -26,7 +26,7 @@ function fakePeer(nodeId, { connected = true, tools = [], fail = null, record } 
     fakePeer("notchpeninsula", { tools: ["notify", "media_control"], record: hits }),
   ];
   const n = createNotifier({ getPeers: () => peers, config: { notifyNode: "notchpeninsula", minIntervalMs: 0 } });
-  assert.ok(await n.fire("info", "标题", "正文"));
+  assert.equal((await n.fire("info", "标题", "正文")).sent, true);
   assert.equal(hits.length, 1);
   assert.equal(hits[0].nodeId, "notchpeninsula");
   assert.equal(hits[0].tool, "notify");
@@ -43,7 +43,7 @@ function fakePeer(nodeId, { connected = true, tools = [], fail = null, record } 
     fakePeer("other", { tools: ["notify"], record: hits }),
   ];
   const n = createNotifier({ getPeers: () => peers, config: { minIntervalMs: 0 } });
-  assert.ok(await n.fire("info", "t", "b"));
+  assert.equal((await n.fire("info", "t", "b")).sent, true);
   assert.equal(hits[0].nodeId, "other");
 }
 
@@ -51,7 +51,7 @@ function fakePeer(nodeId, { connected = true, tools = [], fail = null, record } 
 {
   const peers = [fakePeer("a", { tools: ["ping"] })];
   const n = createNotifier({ getPeers: () => peers, config: { minIntervalMs: 0 } });
-  assert.equal(await n.fire("info", "t", "b"), false);
+  assert.equal((await n.fire("info", "t", "b")).sent, false);
 }
 
 // 4. 节流：同一标题在窗口内只发一次
@@ -60,7 +60,7 @@ function fakePeer(nodeId, { connected = true, tools = [], fail = null, record } 
   const peers = [fakePeer("n", { tools: ["notify"], record: hits })];
   const n = createNotifier({ getPeers: () => peers, config: { minIntervalMs: 10_000 } });
   assert.ok(await n.fire("info", "同一标题", "b"));
-  assert.equal(await n.fire("info", "同一标题", "b"), false);
+  assert.equal((await n.fire("info", "同一标题", "b")).sent, false);
   assert.equal(hits.length, 1);
 }
 
@@ -69,7 +69,7 @@ function fakePeer(nodeId, { connected = true, tools = [], fail = null, record } 
   const errors = [];
   const peers = [fakePeer("n", { tools: ["notify"], fail: new Error("boom") })];
   const n = createNotifier({ getPeers: () => peers, config: { minIntervalMs: 0 }, onError: (e) => errors.push(e.message) });
-  assert.equal(await n.fire("info", "t", "b"), false);
+  assert.equal((await n.fire("info", "t", "b")).sent, false);
   assert.deepEqual(errors, ["boom"]);
 }
 
