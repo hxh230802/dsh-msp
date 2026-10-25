@@ -14,6 +14,10 @@
         staleAfterMs: 30000
         maxPeers: 16
         # —— 通知：把"需要你"的瞬间弹到灵动岛 ——
+        # 两条通道：公告(信号,广播) + 投递(工具,命令)
+        signalPath: dsh.attention.requested
+        useSignal: true                 # 广播"需要用户注意"，供联动方订阅
+        useTool: true                   # 真正弹窗（只有命令能弹）
         notifyNode: notchpeninsula      # 用哪个节点弹（没连上会自动找别的）
         notifyIcon: true                # 通知带鲸鱼娘图标（包内 assets/）
         notifyIconPath: null            # 想换图就填绝对路径

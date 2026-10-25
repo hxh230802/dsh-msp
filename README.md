@@ -87,6 +87,28 @@ POST /msp/notify  → { key, enabled }      或 { approval|question|turnEnd: boo
 
 通知走的是 MSP 的 `notify`：host 直接调节点，**不经过模型、不烧 token、不占回合**。
 
+### 为什么是「公告 + 投递」两条通道
+
+MSP 的 `signal` 是**公告**（我已经做了 X），工具是**命令**（请你做 X）。对端宣告的
+信号 `notify.toast.raised` 描述是"系统通知**到达**"——过去式的观察事件，往里面
+publish 等于谎报"一条 toast 已经到了"，而且接收方没有匹配 handler 时会静默丢弃
+（协议如此，不向未授权对端回错）。
+
+所以拆成两段，各用对的通道：
+
+| 通道 | 机制 | 语义 | 谁在用 |
+|---|---|---|---|
+| **公告** | `publish("dsh.attention.requested")` | 发完即忘、广播、可多方订阅 | 手机推送、灯、日志、另一个 agent |
+| **投递** | `callTool("notify")` | 1:1、要结果、真的弹窗 | 用户 |
+
+```yaml
+signalPath: dsh.attention.requested
+useSignal: true    # 只公告：useTool: false
+useTool: true      # 只投递：useSignal: false
+```
+
+公告失败不拖累投递（反之亦然）：信号是旁路，弹窗才是目的。
+
 **图标**：每条通知都带 `assets/notify-icon-64.png`。MCP content 块里
 `annotations.role = "icon"` 的 image 块会被对端当成通知图标（对端回报
 `"icon": "内联图(N 字符)"` 即表示收到了）。换图两种方式：

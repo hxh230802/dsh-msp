@@ -3,12 +3,17 @@ import { strict as assert } from "node:assert";
 
 import { createNotifier, extractText } from "../lib/notify.js";
 
-function fakePeer(nodeId, { connected = true, tools = [], fail = null, record } = {}) {
+function fakePeer(nodeId, { connected = true, tools = [], fail = null, record, signals, signalOk = true } = {}) {
   return {
     nodeId,
     connected,
     toolMeta: new Map(tools.map((t) => [`msp_${nodeId}_${t}`, { mspName: t }])),
     peer: {
+      publish: (path, payload) => {
+        if (!signalOk) return false;
+        if (signals) signals.push({ path, payload });
+        return true;
+      },
       callTool: async (tool, args) => {
         if (fail) throw fail;
         if (record) record.push({ nodeId, tool, args });
@@ -117,4 +122,41 @@ function fakePeer(nodeId, { connected = true, tools = [], fail = null, record } 
   assert.equal(hits[0].args.content, undefined);
 }
 
-console.log("通知器 OK：挑节点 / 回退 / 无能力 / 节流 / 异常吞掉 / 截断 / payload 提取 / 图标块 / 图标缺失");
+// 10. 公告 + 投递：两条路都走
+{
+  const hits = [];
+  const signals = [];
+  const peers = [fakePeer("n", { tools: ["notify"], record: hits, signals })];
+  const n = createNotifier({ getPeers: () => peers, config: { minIntervalMs: 0 } });
+  const r = await n.fire("warning", "需要确认", "rm -rf 等待批准");
+  assert.equal(r.sent, true);
+  assert.equal(signals.length, 1, "应发一条信号");
+  assert.equal(signals[0].path, "dsh.attention.requested");
+  assert.equal(signals[0].payload.title, "需要确认");
+  assert.equal(signals[0].payload.kind, "warning");
+  assert.equal(hits.length, 1, "同时也应调一次工具");
+}
+
+// 11. 只要公告、不投递
+{
+  const hits = [];
+  const signals = [];
+  const peers = [fakePeer("n", { tools: ["notify"], record: hits, signals })];
+  const n = createNotifier({ getPeers: () => peers, config: { minIntervalMs: 0, useTool: false } });
+  const r = await n.fire("info", "只公告", "正文");
+  assert.equal(r.sent, true);
+  assert.equal(r.reason, "signal-only");
+  assert.equal(signals.length, 1);
+  assert.equal(hits.length, 0, "不应调工具");
+}
+
+// 12. 信号发不出去但工具可用 → 仍投递成功
+{
+  const hits = [];
+  const peers = [fakePeer("n", { tools: ["notify"], record: hits, signalOk: false })];
+  const n = createNotifier({ getPeers: () => peers, config: { minIntervalMs: 0 } });
+  assert.equal((await n.fire("info", "信号失败", "正文")).sent, true);
+  assert.equal(hits.length, 1);
+}
+
+console.log("通知器 OK：挑节点 / 回退 / 无能力 / 节流 / 异常吞掉 / 截断 / payload 提取 / 图标块 / 图标缺失 / 公告+投递 / 只公告 / 信号失败仍投递");
