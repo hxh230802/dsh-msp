@@ -1,7 +1,7 @@
 /** 通知器自测：挑节点、节流、失败不抛、内容截断。 */
 import { strict as assert } from "node:assert";
 
-import { createNotifier, extractText } from "../lib/notify.js";
+import { createNotifier, extractText, resolveIconPath } from "../lib/notify.js";
 
 function fakePeer(nodeId, { connected = true, tools = [], fail = null, record, signals, signalOk = true } = {}) {
   return {
@@ -157,6 +157,15 @@ function fakePeer(nodeId, { connected = true, tools = [], fail = null, record, s
   const n = createNotifier({ getPeers: () => peers, config: { minIntervalMs: 0 } });
   assert.equal((await n.fire("info", "信号失败", "正文")).sent, true);
   assert.equal(hits.length, 1);
+}
+
+// 13. 图标路径归一化：Windows 上前导斜杠会读不到文件
+{
+  assert.equal(resolveIconPath(null), null);
+  assert.equal(resolveIconPath(""), null);
+  assert.ok(resolveIconPath("F:/x/a.png").includes("a.png"));
+  assert.ok(resolveIconPath("/F:/x/a.png").startsWith("F:"), "前导斜杠必须去掉");
+  assert.ok(resolveIconPath("file:///F:/x/a.png").startsWith("F:"));
 }
 
 console.log("通知器 OK：挑节点 / 回退 / 无能力 / 节流 / 异常吞掉 / 截断 / payload 提取 / 图标块 / 图标缺失 / 公告+投递 / 只公告 / 信号失败仍投递");
