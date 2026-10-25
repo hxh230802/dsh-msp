@@ -67,7 +67,8 @@ assert.ok(byName.has("tools/pre-execute"), "必须订阅 tools/pre-execute");
   assert.deepEqual(parsed.peers, [], "空目录不应有对端");
   // 内置鲸鱼娘图标必须真的读到了（Windows 上前导斜杠那个坑会在这里现形）
   assert.ok(parsed.notifyIcon, "state 必须带图标状态");
-  assert.equal(parsed.notifyIcon.ok, true, `内置图标应可读: ${JSON.stringify(parsed.notifyIcon)}`);
+  assert.equal(parsed.notifyIcon.ok, true, `内置图标应可用: ${JSON.stringify(parsed.notifyIcon)}`);
+  assert.equal(parsed.notifyIcon.source, "embedded", "默认应用内联 base64，不读文件");
   assert.ok(parsed.notifyIcon.chars > 1000, "图标 base64 应有内容");
 }
 
@@ -82,4 +83,4 @@ assert.ok(byName.has("tools/pre-execute"), "必须订阅 tools/pre-execute");
 for (const dispose of effects) assert.doesNotThrow(() => dispose());
 
 fs.rmSync(nodesDir, { recursive: true, force: true });
-console.log("插件入口 OK：apply 不抛 / 元工具 / 3 条路由 / 事件订阅带 global / state 可读 / 内置图标可读 / 清理");
+console.log("插件入口 OK：apply 不抛 / 元工具 / 3 条路由 / 事件订阅带 global / state 可读 / 内联图标可用 / 清理");

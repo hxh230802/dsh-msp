@@ -19,8 +19,8 @@
         useSignal: true                 # 广播"需要用户注意"，供联动方订阅
         useTool: true                   # 真正弹窗（只有命令能弹）
         notifyNode: notchpeninsula      # 用哪个节点弹（没连上会自动找别的）
-        notifyIcon: true                # 通知带鲸鱼娘图标（包内 assets/）
-        notifyIconPath: null            # 想换图就填绝对路径
+        notifyIcon: true                # 通知带鲸鱼娘图标（lib/icon.js 内联 base64，零 I/O）
+        notifyIconPath: null            # 想换图才填路径；读不到会退回内置图
         notifyMinIntervalMs: 3000       # 同类通知的最小间隔
         notifyOnApproval: true          # 有操作等你确认
         notifyOnQuestion: true          # 模型在问你问题

@@ -109,7 +109,20 @@ useTool: true      # 只投递：useSignal: false
 
 公告失败不拖累投递（反之亦然）：信号是旁路，弹窗才是目的。
 
-**图标**：每条通知都带 `assets/notify-icon-64.png`。MCP content 块里
+**图标是内联 base64**，不是运行期读文件。`lib/icon.js` 里存着 64×64 PNG 的 base64
+（11.9KB），`assets/` 下保留同名 PNG 作为源图。这样做的原因：运行期读盘引入一整套
+失败面——包被复制/挂载到别处、相对路径算错、Windows 上 `new URL().pathname` 给出
+`/F:/...` 前导斜杠（这个坑踩过一次，图标会**静默**变成 null）。
+
+```yaml
+notifyIcon: true                    # 默认：用内联 base64
+notifyIconPath: C:/path/to/x.png    # 覆盖：才去读文件，读不到自动退回内置图
+# notifyIcon: false                 # 完全不带图标
+```
+
+`/msp/state` 的 `notifyIcon` 会告诉你图标从哪来：`{ok, source: "embedded"|"file"|"disabled", chars}`。
+
+原图（源文件）：`assets/notify-icon-64.png`。MCP content 块里
 `annotations.role = "icon"` 的 image 块会被对端当成通知图标（对端回报
 `"icon": "内联图(N 字符)"` 即表示收到了）。换图两种方式：
 

@@ -113,11 +113,33 @@ function fakePeer(nodeId, { connected = true, tools = [], fail = null, record, s
   assert.ok(content[0].data.length > 1000, "base64 应有内容");
 }
 
-// 9. 图标文件不存在 → 不带 content 也要能发出去
+// 9. 图标默认来自内联 base64，连文件都不用读
+{
+  const hits = [];
+  const peers = [fakePeer("n", { tools: ["notify"], record: hits })];
+  const n = createNotifier({ getPeers: () => peers, config: { minIntervalMs: 0 } });
+  assert.equal(n.iconInfo().source, "embedded");
+  await n.fire("info", "内置图标", "正文");
+  assert.equal(hits[0].args.content[0].annotations.role, "icon");
+  assert.ok(hits[0].args.content[0].data.length > 1000);
+}
+
+// 9b. 自定义图路径读不到 → 退回内置（而不是"没有图标"）
 {
   const hits = [];
   const peers = [fakePeer("n", { tools: ["notify"], record: hits })];
   const n = createNotifier({ getPeers: () => peers, config: { minIntervalMs: 0, iconPath: "不存在.png" } });
+  assert.equal(n.iconInfo().source, "embedded");
+  await n.fire("info", "坏路径", "正文");
+  assert.ok(hits[0].args.content.length === 1);
+}
+
+// 9c. 显式关掉图标 → 不带 content
+{
+  const hits = [];
+  const peers = [fakePeer("n", { tools: ["notify"], record: hits })];
+  const n = createNotifier({ getPeers: () => peers, config: { minIntervalMs: 0, useIcon: false } });
+  assert.equal(n.iconInfo().source, "disabled");
   assert.equal((await n.fire("info", "无图标", "正文")).sent, true);
   assert.equal(hits[0].args.content, undefined);
 }
@@ -168,4 +190,4 @@ function fakePeer(nodeId, { connected = true, tools = [], fail = null, record, s
   assert.ok(resolveIconPath("file:///F:/x/a.png").startsWith("F:"));
 }
 
-console.log("通知器 OK：挑节点 / 回退 / 无能力 / 节流 / 异常吞掉 / 截断 / payload 提取 / 图标块 / 图标缺失 / 公告+投递 / 只公告 / 信号失败仍投递");
+console.log("通知器 OK：挑节点 / 回退 / 无能力 / 节流 / 异常吞掉 / 截断 / payload 提取 / 图标块 / 内联图标 / 坏路径退回 / 关掉图标 / 公告+投递 / 只公告 / 信号失败仍投递");
