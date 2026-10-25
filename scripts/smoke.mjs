@@ -38,8 +38,8 @@ const root = {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-apply(root, { gateway: "gateway", verbose: true });
-await sleep(2500);
+apply(root, { verbose: true });
+await sleep(3500);
 
 console.log("\n=== 已注册的 DSH 工具 ===");
 for (const [toolName, def] of registered) {
@@ -55,16 +55,20 @@ if (!status) {
 const value = await status.execute({}, {});
 const s = value.structuredContent;
 console.log("\n=== msp_status ===");
-console.log("  connected:", s.connected);
-console.log("  gateway  :", s.gateway);
-console.log("  tools    :", s.tools);
+console.log("  peers:");
+for (const p of s.peers) {
+  console.log(`    ${p.connected ? "●" : "○"} ${p.nodeId.padEnd(16)} ${p.endpoint.host}:${p.endpoint.port}  工具 ${p.tools.length}`);
+  for (const t of p.tools) console.log(`        ${t}`);
+}
 console.log("  discovered:", s.discovered.map((d) => `${d.nodeId}(${d.ageSeconds}s)`).join(", "));
 
 // 有设备工具就做一次「参数非法」的往返：验证请求/响应与错误路径，
 // 又不会真的动硬件（合法参数才会转风扇/舵机）。
-// 优先挑 led_control：它接受 action 枚举，能用非法值验证错误路径而不动硬件
+// 优先挑一个**无副作用**的工具做往返：*_ping 最好，其次 led_control
 const names = [...registered.keys()].filter((n) => n !== "msp_status");
-const deviceTool = names.find((n) => n.endsWith("_led_control")) ?? names[0];
+const deviceTool = names.find((n) => n.endsWith("_ping"))
+  ?? names.find((n) => n.endsWith("_led_control"))
+  ?? names[0];
 if (deviceTool) {
   const def = registered.get(deviceTool);
   console.log(`\n=== 调 ${deviceTool}（故意用非法参数，验证往返与错误路径）===`);
