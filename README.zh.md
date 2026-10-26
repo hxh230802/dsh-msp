@@ -52,6 +52,11 @@ dsh --profile <profile> --dump-config | grep -A8 'id: dsh-msp'   # 确认配置�
   不重启会话。
 - **错误即值 → 抛错**：MSP 的 `ToolResult(error=...)` 在 DSH 侧表现为 `throw`。
 - 零依赖：MSP 客户端在 `lib/msp.js` 里自带，不引 npm 包。
+- **每个进程一个唯一 node id**：插件以 `dsh-msp-<8hex>` 加入网络，启动时随机生成。
+  不能写死 `dsh-msp`——对端的连接表**按 node id 为键**（`connections[peer_id] = conn`），
+  握手去重还按 id 比较决定方向，两个进程报同一个 id 在对端眼里就是"同一个 peer 的两条
+  连接"，后连的踢掉先连的，两边都抖。两个 DSH 窗口、两个 profile、或同机再跑一个 DSH
+  都会撞上。需要**稳定身份**（比如对端按 id 做白名单）时在配置里写 `nodeId`。
 
 ## 界面（client 半端）
 

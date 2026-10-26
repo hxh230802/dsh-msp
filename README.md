@@ -64,6 +64,13 @@ Uninstall with `dsh plugin --profile <profile> remove dsh-msp`.
 - **Error as value → throw.** MSP's `ToolResult(error=...)` surfaces as a thrown error, so
   the model reads the reason instead of treating an empty success as an answer.
 - **Zero dependencies.** The MSP client is bundled in `lib/msp.js`; nothing is installed from npm.
+- **Unique node id per process.** The plugin joins the network as `dsh-msp-<8hex>`, generated at
+  startup. It cannot be a fixed `dsh-msp`: a peer keys its connection table **by node id**
+  (`connections[peer_id] = conn`) and its handshake dedup picks a direction by comparing ids, so
+  two processes reporting the same id look like one peer with two connections — the later one
+  evicts the earlier and both end up flapping. Two DSH windows, two profiles, or a second DSH on
+  the same machine would all collide. Set `nodeId` if you need a **stable** identity (for example
+  when a peer allowlists you by id).
 
 ## UI (client half)
 

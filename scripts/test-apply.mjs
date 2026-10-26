@@ -65,6 +65,8 @@ assert.ok(byName.has("tools/pre-execute"), "必须订阅 tools/pre-execute");
   assert.ok(parsed.notify && typeof parsed.notify.approval === "boolean", "state 必须带 notify 开关");
   assert.ok(parsed.hooks && typeof parsed.hooks.turnEnd === "number", "state 必须带钩子计数");
   assert.deepEqual(parsed.peers, [], "空目录不应有对端");
+  // node_id 必须唯一化并符合 MSP 文法，否则并发实例会在对端撞成同一个 peer
+  assert.match(parsed.selfId, /^dsh-msp-[0-9a-f]{8}$/, `selfId 不合预期: ${parsed.selfId}`);
   // 内置鲸鱼娘图标必须真的读到了（Windows 上前导斜杠那个坑会在这里现形）
   assert.ok(parsed.notifyIcon, "state 必须带图标状态");
   assert.equal(parsed.notifyIcon.ok, true, `内置图标应可用: ${JSON.stringify(parsed.notifyIcon)}`);

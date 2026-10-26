@@ -34,8 +34,9 @@
     }
   },
   "scripts": {
-    "test": "node scripts/test-apply.mjs && node scripts/test-routes.mjs && node scripts/test-client.mjs && node scripts/test-notify.mjs && node scripts/test-prefs.mjs && node scripts/test-turns.mjs",
-    "smoke": "node scripts/smoke.mjs"
+    "test": "node scripts/test-apply.mjs && node scripts/test-routes.mjs && node scripts/test-client.mjs && node scripts/test-notify.mjs && node scripts/test-prefs.mjs && node scripts/test-turns.mjs && node scripts/test-instance.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "test:unit": "node scripts/test-routes.mjs && node scripts/test-client.mjs && node scripts/test-notify.mjs && node scripts/test-prefs.mjs && node scripts/test-turns.mjs && node scripts/test-instance.mjs"
   },
   "repository": {
     "type": "git",
