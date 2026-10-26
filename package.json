@@ -1,7 +1,7 @@
 {
   "name": "dsh-msp",
-  "version": "0.1.1",
-  "description": "把 MSP 网关挂载的设备工具（含 ESP32）暴露成 DeepSeek Harness 工具",
+  "version": "0.1.2",
+  "description": "把本机 MSP 网络上每个节点的工具暴露给 DeepSeek Harness（含 ESP32 设备、长任务等待、通知）",
   "license": "MIT",
   "type": "module",
   "main": "lib/index.js",
