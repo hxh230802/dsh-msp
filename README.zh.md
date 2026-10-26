@@ -13,6 +13,9 @@ agent ──(DSH tool)──> dsh-msp ──(MSP/TCP, 每节点一条连接)─�
 
 ```bash
 dsh plugin --profile <profile> add /path/to/dsh-msp --ignore-workspace-root-check
+
+# 按 tag 固定版本（除了作者本人，建议都这么装：跟分支装意味着任何提交都算已发布）
+dsh plugin --profile <profile> add github:hxh230802/dsh-msp#v0.1.1 --ignore-workspace-root-check
 dsh --profile <profile> --dump-config | grep -A8 'id: dsh-msp'   # 确认配置树里有这行
 ```
 

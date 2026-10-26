@@ -16,6 +16,10 @@ English | [中文](README.zh.md)
 # from GitHub (the repo ships lib/ ready to run — no build step)
 dsh plugin --profile <profile> add github:hxh230802/dsh-msp --ignore-workspace-root-check
 
+# pin an exact release (recommended for anyone but the author — tracking the
+# branch means every commit is instantly "released")
+dsh plugin --profile <profile> add github:hxh230802/dsh-msp#v0.1.1 --ignore-workspace-root-check
+
 # from a local checkout (development; pnpm links, so edits are live)
 dsh plugin --profile <profile> add /path/to/dsh-msp --ignore-workspace-root-check
 
