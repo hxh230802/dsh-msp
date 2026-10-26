@@ -41,6 +41,14 @@ assert.ok(statusTool, "msp_status 必须注册");
 assert.equal(typeof statusTool.execute, "function");
 assert.equal(statusTool.parameters.type, "object");
 
+// 2b. 长任务工具也要注册，且必须带 output —— 缺 output 时 register 会抛错，
+// 表现是"管理器在、工具不出现"（线上踩过一次，只有 curl /msp/state 才看出来）
+const waitTool = tools.find((t) => t.name === "msp_call_wait");
+assert.ok(waitTool, `msp_call_wait 必须注册，当前只有: ${tools.map((t) => t.name).join(",")}`);
+assert.ok(waitTool.output && waitTool.output.schema, "msp_call_wait 必须带 output.schema");
+assert.equal(typeof waitTool.output.render, "function");
+assert.equal(typeof waitTool.execute, "function");
+
 // 3. 三条路由都注册了
 const paths = routes.map((r) => r.path).sort();
 assert.deepEqual(paths, ["/msp/node", "/msp/notify", "/msp/state"], `路由不对: ${paths}`);
