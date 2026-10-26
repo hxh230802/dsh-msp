@@ -115,6 +115,27 @@ function fakePeer({ statusAfter = 0, delayMs = 0 } = {}) {
     () => tasks.callAndWait({ node: "nope", tool: "ping" }, { getPeer: () => null }),
     /未连接节点/,
   );
+
 }
 
-console.log("长任务 OK：信号先到 / 轮询兜底 / 超时转后台并记录 / 无句柄直返 / 节点不存在");
+// ---- 6. 工具把失败塞进成功返回里 → 必须抛错，不能谎报"已完成" ----
+// 真实案例：gd3 的 add_task 遇到源站 403 时返回 [{url, error:{code,message}}]
+{
+  const entry = {
+    peer: {
+      callTool: async () => ({
+        content: [],
+        structuredContent: [{ url: "x", error: { code: "parseFailed", message: "HTTP 403" } }],
+      }),
+      publish: () => true,
+    },
+    tools: [],
+  };
+  const tasks = createLongTasks({});
+  await assert.rejects(
+    () => tasks.callAndWait({ node: "gd3", tool: "add_task", args: {} }, { getPeer: () => entry }),
+    /HTTP 403/,
+  );
+}
+
+console.log("长任务 OK：信号先到 / 轮询兜底 / 超时转后台并记录 / 无句柄直返 / 节点不存在 / 内嵌失败必抛");
