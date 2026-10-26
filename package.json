@@ -39,10 +39,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ModelSensingProtocol/dsh-msp.git"
+    "url": "git+https://github.com/hxh230802/dsh-msp.git"
   },
-  "homepage": "https://github.com/ModelSensingProtocol/dsh-msp#readme",
+  "homepage": "https://github.com/hxh230802/dsh-msp#readme",
   "bugs": {
-    "url": "https://github.com/ModelSensingProtocol/dsh-msp/issues"
+    "url": "https://github.com/hxh230802/dsh-msp/issues"
   }
 }
