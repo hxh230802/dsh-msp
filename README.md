@@ -1,25 +1,34 @@
 # dsh-msp
 
-把**本机 MSP 网络上每个节点**的工具暴露成 DeepSeek Harness 工具，agent 直接调用：
+Expose the tools of **every node on your local [MSP](https://github.com/hxh230802/MSP) network** as
+DeepSeek Harness tools, so the agent can call them directly:
 
 ```
-agent ──(DSH tool)──> dsh-msp ──(MSP/TCP, 每节点一条连接)──> gateway / notchpeninsula / …
-                                                                  └─(MCP/WS)─> ESP32
+agent ──(DSH tool)──> dsh-msp ──(MSP/TCP, one connection per node)──> gateway / notchpeninsula / …
+                                                                        └─(MCP/WS)─> ESP32
 ```
 
-## 装
+English | [中文](README.zh.md)
+
+## Install
 
 ```bash
+# from GitHub (the repo ships lib/ ready to run — no build step)
+dsh plugin --profile <profile> add github:hxh230802/dsh-msp --ignore-workspace-root-check
+
+# from a local checkout (development; pnpm links, so edits are live)
 dsh plugin --profile <profile> add /path/to/dsh-msp --ignore-workspace-root-check
-dsh --profile <profile> --dump-config | grep -A8 'id: dsh-msp'   # 确认配置树里有这行
+
+# verify the row landed in the composed config tree
+dsh --profile <profile> --dump-config | grep -A8 'id: dsh-msp'
 ```
 
-**host 侧插件，改完要重启 GUI 才生效**（刷新页面不算）。卸载：
-`dsh plugin --profile <profile> remove dsh-msp`。
+This is a **host-side plugin: restart the GUI after changing it** (reloading the page is not enough).
+Uninstall with `dsh plugin --profile <profile> remove dsh-msp`.
 
-## 配
+## Configure
 
-`cordis.patch.yml`（装成 profile 依赖后自动并进配置树）：
+`cordis.patch.yml` — merged into the config tree once the package is a profile dependency:
 
 ```yaml
 - insert:
@@ -27,133 +36,148 @@ dsh --profile <profile> --dump-config | grep -A8 'id: dsh-msp'   # 确认配置�
       name: dsh-msp
       config:
         nodesDir: ~/.msp/nodes
-        includeNodes: []        # 非空 = 只连这些节点（白名单）
-        excludeNodes: []        # 黑名单，例如 [test.node1, demo_signals]
+        includeNodes: []        # non-empty => allowlist only
+        excludeNodes: []        # e.g. [test.node1, demo_signals]
         toolPrefix: msp_
-        discoveryMs: 3000       # 发现目录扫描间隔
+        discoveryMs: 3000       # discovery directory scan interval
         callTimeoutMs: 30000
-        retryMs: 3000           # 单节点断开后的重拨间隔
-        staleAfterMs: 30000     # 租约：超过这么久没续租的声明视为已死
+        retryMs: 3000           # reconnect delay per node
+        staleAfterMs: 30000     # lease: declarations older than this are dead
         maxPeers: 16
         verbose: false
 ```
 
-## 行为
+## Behaviour
 
-- **每个节点一条连接**：按发现目录里的租约跟踪所有新鲜节点（> `staleAfterMs` 未续租
-  的声明直接忽略——这就是 MSP 的"崩溃自动消失"）。
-- **工具名 = `msp_<节点>_<工具>`**：节点 id 归一化成 `[a-z0-9_]`；若工具名本身已带
-  该前缀则不重复拼（`notchpeninsula_hellomsp_echo` → `msp_notchpeninsula_hellomsp_echo`）。
-- **断开 ≠ 摘除**：socket 断了工具仍在（否则模型手里的工具名会跳变），调用返回
-  「未连接」；只有**租约过期**（节点真的没了）才摘掉那组工具。
-- **清单跟随**：节点推 `MANIFEST_UPDATE`（设备上线/掉线、工具增删）时按名字 diff，
-  不重启会话。
-- **错误即值 → 抛错**：MSP 的 `ToolResult(error=...)` 在 DSH 侧表现为 `throw`。
-- 零依赖：MSP 客户端在 `lib/msp.js` 里自带，不引 npm 包。
+- **One connection per node.** Every fresh node in the discovery directory gets its own
+  connection. Freshness comes from MSP leases: a declaration not renewed within
+  `staleAfterMs` is ignored — that is MSP's "crashed processes disappear" property.
+- **Tool name = `msp_<node>_<tool>`.** Node ids are normalised to `[a-z0-9_]`. If the tool
+  name already carries that prefix it is not doubled
+  (`notchpeninsula_hellomsp_echo` → `msp_notchpeninsula_hellomsp_echo`).
+- **Disconnect ≠ removal.** A dropped socket keeps the tools (otherwise tool names would
+  flicker under the model); calls return "not connected". Tools are only removed when the
+  **lease expires** — i.e. the node is really gone.
+- **Tools follow the manifest.** When a node pushes `MANIFEST_UPDATE` (device plugged in or
+  removed, tools added or dropped) the plugin diffs by name and republishes — no session
+  restart.
+- **Error as value → throw.** MSP's `ToolResult(error=...)` surfaces as a thrown error, so
+  the model reads the reason instead of treating an empty success as an answer.
+- **Zero dependencies.** The MSP client is bundled in `lib/msp.js`; nothing is installed from npm.
 
-## 界面（client 半端）
+## UI (client half)
 
-装好并重启后，左侧栏会出现一个 **MSP** 图标，点开是一整页：
+After a restart the left sidebar shows an **MSP** icon that opens a full page:
 
-| 区块 | 内容 |
+| Section | Content |
 |---|---|
-| **节点/工具关系图** | 中心是本插件，外围每个 CIRCLE 是一个 MSP 节点；实线 = 已连接，虚线 = 断开；圆的大小随工具数增长，圈内数字是工具数 |
-| **权限与工具** | 每个节点一行：状态点、地址、启用/禁用按钮、该节点宣告的工具（含参数名，hover 看描述）。点"已启用"→ 断开该节点并摘掉它的工具 |
-| **通知开关** | 三个独立开关：有操作等我确认 / 模型在问我问题 / 任务完成（仅长任务） |
-| **最近调用** | 时间 / 节点 / 工具名 / 耗时或错误，来自 host 侧记录的最后 40 条 |
-| **发现目录** | 声明文件里的全部节点与租约年龄（含过期未清理的） |
+| **Node / tool graph** | Centre is this plugin; each outer circle is an MSP node. Solid line = connected, dashed = disconnected; circle size grows with tool count, the number inside is that count |
+| **Permissions & tools** | One row per node: status dot, address, enable/disable button, and the tools it advertises (parameter names; hover for descriptions). Disabling drops the node and its tools immediately |
+| **Notification switches** | Three independent toggles: approval waiting / question waiting / task finished (long tasks only) |
+| **Recent calls** | Time / node / tool / duration or error, from the last 40 calls recorded host-side |
+| **Discovery directory** | Every declaration file and its lease age (including expired ones nobody cleaned up) |
 
-数据通路：host 注册三条路由，页面每 2 秒轮询一次。
+Data path: the host registers three routes, the page polls every 2 s.
 
 ```
-GET  /msp/state   → { ok, peers[], calls[], discovered[], policy, notify }
-POST /msp/node    → { nodeId, enabled }   改权限，立刻重连/断开
-POST /msp/notify  → { key, enabled }      或 { approval|question|turnEnd: boolean }  开关通知
+GET  /msp/state   → { ok, peers[], calls[], discovered[], policy, notify, notifyIcon, hooks }
+POST /msp/node    → { nodeId, enabled }   change permissions; reconnects/drops immediately
+POST /msp/notify  → { key, enabled }      or { approval|question|turnEnd: boolean }  toggle notifications
 ```
 
-## 通知开关（用户可关）
+The browser half is a hand-written CJS bundle (`lib/client.js`, wrapped in
+`window.__ModuleLoader__.load`, `react` supplied by the host) — **no build toolchain needed**.
+If the host does not expose the `slots` service, `apply` exits quietly: the panel is absent
+but nothing else breaks.
 
-三个场景各一个开关，面板上直接点：
+## Notifications
 
-| 开关 | 触发事件 | 说明 |
+Three switches, one per situation, toggled from the panel:
+
+| Switch | Hooked event | Notes |
 |---|---|---|
-| 有操作等我确认 | `approval/asked` | 审批被挂起时弹 |
-| 模型在问我问题 | `tools/pre-execute` 且工具是 `ask_user_question` | 弹问题原文 |
-| 任务完成 | `turn/end` | 仅本轮 ≥ `turnEndMinMs`（默认 20s）时弹，避免刷屏 |
+| Approval waiting | `approval/asked` | Fires when an approval is raised |
+| Question waiting | `tools/pre-execute` with tool `ask_user_question` | Sends the question text |
+| Task finished | `session/event` where `event.type === 'turn/end'` | Only if the turn ran ≥ `turnEndMinMs` (default 20 s) |
 
-**优先级**：面板里点过的选择 > `cordis.patch.yml` 里的 `notifyOn*` 默认值。
-选择落在 `~/.dsh/dsh-msp/notify.json`，重启后保持——否则每次重启都把用户关掉的
-提醒又打开，开关就没意义了。文件缺失/损坏时退回默认值，不会拖垮插件启动。
+**Precedence:** the panel choice wins over the `notifyOn*` defaults in `cordis.patch.yml`.
+The choice is persisted to `~/.dsh/dsh-msp/notify.json` and survives restarts — otherwise every
+restart would silently re-enable what the user turned off. A missing or corrupt file falls back
+to the defaults and never blocks startup.
 
-通知走的是 MSP 的 `notify`：host 直接调节点，**不经过模型、不烧 token、不占回合**。
+Notifications go through MSP `notify`: the host calls the node directly, so **no model round
+trip, no tokens, no turn consumed**.
 
-### 为什么是「公告 + 投递」两条通道
+### Why two channels: announce + deliver
 
-MSP 的 `signal` 是**公告**（我已经做了 X），工具是**命令**（请你做 X）。对端宣告的
-信号 `notify.toast.raised` 描述是"系统通知**到达**"——过去式的观察事件，往里面
-publish 等于谎报"一条 toast 已经到了"，而且接收方没有匹配 handler 时会静默丢弃
-（协议如此，不向未授权对端回错）。
+In MSP a `signal` is an **announcement** ("X already happened") while a tool is a **command**
+("please do X"). The peer's signal `notify.toast.raised` is described as *"a system notification
+**arrived**"* — a past-tense observation. Publishing into it would claim a toast already exists,
+and a receiver with no matching handler drops it silently (by design: errors are never returned
+to unauthorised peers).
 
-所以拆成两段，各用对的通道：
+So the plugin splits the job:
 
-| 通道 | 机制 | 语义 | 谁在用 |
+| Channel | Mechanism | Semantics | Consumers |
 |---|---|---|---|
-| **公告** | `publish("dsh.attention.requested")` | 发完即忘、广播、可多方订阅 | 手机推送、灯、日志、另一个 agent |
-| **投递** | `callTool("notify")` | 1:1、要结果、真的弹窗 | 用户 |
+| **Announce** | `publish("dsh.attention.requested")` | fire-and-forget, broadcast, many subscribers | phone push, LED, log, another agent |
+| **Deliver** | `callTool("notify")` | 1:1, waits for a result, actually pops up | the user |
 
 ```yaml
 signalPath: dsh.attention.requested
-useSignal: true    # 只公告：useTool: false
-useTool: true      # 只投递：useSignal: false
+useSignal: true    # announce only: set useTool: false
+useTool: true      # deliver only: set useSignal: false
 ```
 
-公告失败不拖累投递（反之亦然）：信号是旁路，弹窗才是目的。
+A failed announcement never blocks delivery (and vice versa): the signal is a side channel,
+popping up is the point.
 
-**图标是内联 base64**，不是运行期读文件。`lib/icon.js` 里存着 64×64 PNG 的 base64
-（11.9KB），`assets/` 下保留同名 PNG 作为源图。这样做的原因：运行期读盘引入一整套
-失败面——包被复制/挂载到别处、相对路径算错、Windows 上 `new URL().pathname` 给出
-`/F:/...` 前导斜杠（这个坑踩过一次，图标会**静默**变成 null）。
+### Icon
+
+The notification icon is **inline base64**, not read from disk at runtime. `lib/icon.js` holds
+the base64 of a 64×64 PNG (11.9 KB); `assets/` keeps the same PNG as the source image. Reading
+a file at runtime brings a whole failure surface — package copied or mounted elsewhere, a
+miscalculated relative path, and on Windows `new URL().pathname` yielding a `/F:/…` leading
+slash (this one bit us once: the icon silently became `null`).
 
 ```yaml
-notifyIcon: true                    # 默认：用内联 base64
-notifyIconPath: C:/path/to/x.png    # 覆盖：才去读文件，读不到自动退回内置图
-# notifyIcon: false                 # 完全不带图标
+notifyIcon: true                    # default: inline base64
+notifyIconPath: C:/path/to/x.png    # override: only then is a file read; unreadable => fall back
+# notifyIcon: false                 # no icon at all
 ```
 
-`/msp/state` 的 `notifyIcon` 会告诉你图标从哪来：`{ok, source: "embedded"|"file"|"disabled", chars}`。
+`/msp/state` reports where the icon came from:
+`{ok, source: "embedded"|"file"|"disabled", chars}`.
 
-原图（源文件）：`assets/notify-icon-64.png`。MCP content 块里
-`annotations.role = "icon"` 的 image 块会被对端当成通知图标（对端回报
-`"icon": "内联图(N 字符)"` 即表示收到了）。换图两种方式：
+In the MCP content block, an image block with `annotations.role = "icon"` is used as the
+notification icon (the peer echoes `"icon": "inline image (N chars)"` when it accepted it).
+Throttling defaults to 3 s per title; if the preferred node is offline the notifier falls back
+to any connected node that advertises `notify`.
 
-```yaml
-notifyIcon: true
-notifyIconPath: C:/path/to/your.png   # 绝对路径覆盖内置图
-# 或者 notifyIcon: false 完全不带图
-```
-节流默认 3 秒（同标题），节点没连上时自动找别的有 `notify` 能力的节点。
+## Tools shipped by the plugin
 
-浏览器半端是手写的 CJS bundle（`lib/client.js`，`window.__ModuleLoader__.load` 包装，
-`react` 由宿主 `require` 提供），**不需要构建工具链**。
-
-## 自带工具
-
-| 工具 | 作用 |
+| Tool | Purpose |
 |---|---|
-| `msp_status` | 每个节点的连接状态、端点、已暴露的工具；发现目录里的全部节点（含租约年龄） |
+| `msp_status` | Per-node connection state, endpoint and published tools; every node in the discovery directory with its lease age; notification switches, hook counters, icon status |
 
-## 自测（不需要 DSH）
+## Testing (no DSH required)
 
 ```bash
-npm test                      # 单元自测：host 路由（假 req/res）+ client bundle（mock 模块加载器）
-node scripts/smoke.mjs        # 假 ctx 驱动插件，对着真实 MSP 网络跑「发现→连接→注册→调用」
-node scripts/probe-peers.mjs  # 只探测：逐个连上新节点，打印它们的工具/信号/能力，不注册
-node scripts/call-peer.mjs <node> <tool> '{...}'   # 命令行直接调某节点的一个工具
+npm test                      # 6 suites: plugin entry, host routes, client bundle, notifier, prefs, turn tracker
+node scripts/smoke.mjs        # drive the plugin with a fake ctx against the real MSP network
+node scripts/probe-peers.mjs  # probe only: connect to fresh nodes, print tools/signals/capabilities
+node scripts/call-peer.mjs <node> <tool> '{...}'   # call one tool on one node from the CLI
 ```
 
-## 已知边界
+## Known limits
 
-- 只做 `request-reply`（工具调用），**不订阅 MSP 广播**——MSP 的 `signal` 被忽略，
-  所以 `notify.*`、`media.track.changed` 这类信号不会推进模型上下文。
-- 工具 schema 变化但名字不变时不会重注册（避免打断会话）；节点重连才会拿到新 schema。
-- 无鉴权：MSP 本机自组网的信任模型是"传输可达即信任"，跨机请自行加隔离。
+- **Only `request-reply`.** MSP broadcasts (`signal`) are ignored, so `notify.*`,
+  `media.track.changed` and friends never reach the model's context.
+- A changed tool schema under an unchanged name is not re-registered (to avoid interrupting a
+  session); a node reconnect picks it up.
+- No authentication: MSP's trust model on a local network is "reachable means trusted".
+  Isolate it yourself before crossing machines.
+
+## License
+
+MIT

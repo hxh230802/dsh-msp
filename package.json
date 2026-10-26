@@ -13,7 +13,8 @@
     "lib",
     "cordis.patch.yml",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "README.zh.md"
   ],
   "keywords": [
     "dsh-plugin",
@@ -35,5 +36,13 @@
   "scripts": {
     "test": "node scripts/test-apply.mjs && node scripts/test-routes.mjs && node scripts/test-client.mjs && node scripts/test-notify.mjs && node scripts/test-prefs.mjs && node scripts/test-turns.mjs",
     "smoke": "node scripts/smoke.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hxh230802/dsh-msp.git"
+  },
+  "homepage": "https://github.com/hxh230802/dsh-msp#readme",
+  "bugs": {
+    "url": "https://github.com/hxh230802/dsh-msp/issues"
   }
 }
