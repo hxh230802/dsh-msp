@@ -169,7 +169,44 @@ to any connected node that advertises `notify`.
 
 | Tool | Purpose |
 |---|---|
-| `msp_status` | Per-node connection state, endpoint and published tools; every node in the discovery directory with its lease age; notification switches, hook counters, icon status |
+| `msp_status` | Per-node connection state, endpoint and published tools; every node in the discovery directory with its lease age; notification switches, hook counters, icon status, long-task state |
+| `msp_call_wait` | Call a tool and wait for it to finish: signal first, status polling as fallback, `pending` handle when the wait window expires |
+
+## Long tasks (`msp_call_wait`)
+
+The model sees a **synchronous call**; the host does the hard part.
+
+```
+msp_call_wait {node:"gd3", tool:"add_task", args:{urls:[...]}, waitMs:25000}
+  → {status:"completed", via:"signal", taskId:"tsk_…", result:{files:[…]}}
+
+  → {status:"pending", taskId:"tsk_…"}     # window expired; completion is recorded later
+```
+
+**Three layers, in priority order:**
+
+| Layer | Role | Why it exists |
+|---|---|---|
+| Completion **signal** (`task.completed` …) | fast path, millisecond return | the point of subscribing at all |
+| **Polling** a status tool (`get_task`) | fallback | signals are not retained, may be unauthorised (a publisher gates delivery with `grant_sub`), and are lost while disconnected |
+| **Background watch** after the window | keeps the card alive | a long download must not freeze a turn |
+
+Because polling always runs in parallel, **not knowing which signal means "done" is a performance
+problem, never a correctness problem** — worst case the call is a few seconds slower.
+
+**How the binding is learned.** The node's manifest already lists its signal paths, so the plugin
+subscribes to all of them and matches observers against the handle returned by the start tool: the
+first event whose payload contains that handle confirms the mapping, which is then cached in
+`~/.dsh/dsh-msp/bindings.json`. Naming heuristics (`completed` / `failed`) seed the very first
+attempt. Nothing has to be declared by the node author.
+
+**When the window expires**, the task keeps being watched in the background; on completion one
+record is appended (visible in `msp_status`) and a notification fires through the same channel as
+the other hooks.
+
+Note: nodes such as `gd3` publish **no progress signal** — `task.added`, `task.status`,
+`task.completed`, `task.failed`, `task.removed` only. Progress therefore cannot stream into the
+conversation; the panel can show it, the model sees the final result.
 
 ## Testing (no DSH required)
 
