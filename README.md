@@ -14,7 +14,7 @@ English | [中文](README.zh.md)
 
 ```bash
 # from GitHub (the repo ships lib/ ready to run — no build step)
-dsh plugin --profile <profile> add github:hxh230802/dsh-msp --ignore-workspace-root-check
+dsh plugin --profile <profile> add github:ModelSensingProtocol/dsh-msp --ignore-workspace-root-check
 
 # from a local checkout (development; pnpm links, so edits are live)
 dsh plugin --profile <profile> add /path/to/dsh-msp --ignore-workspace-root-check
