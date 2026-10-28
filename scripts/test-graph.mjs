@@ -50,6 +50,26 @@ const discovered = [
   assert.equal(selfEdge.kind, "observed");
 }
 
+// 3b. 自报**也能否边**：两个懒节点互不相连，报出来的集合里没有对方 → 不画边
+{
+  const lazyPeers = [
+    { nodeId: "lazy-1", connected: true, tools: [] },
+    { nodeId: "lazy-2", connected: true, tools: [] },
+  ];
+  const withoutHints = buildGraph({ selfId: "me", peers: lazyPeers, discovered: [] });
+  assert.equal(withoutHints.stats.inferred, 1, "没有自报时只能推断它们相连");
+
+  const hints = new Map([
+    ["lazy-1", ["me"]],          // 只报了自己连 me
+    ["lazy-2", ["me"]],
+  ]);
+  const withHints = buildGraph({ selfId: "me", peers: lazyPeers, discovered: [], hints });
+  const between = withHints.edges.find(
+    (e) => [e.from, e.to].includes("lazy-1") && [e.from, e.to].includes("lazy-2"),
+  );
+  assert.equal(between, undefined, "双方都没提到对方 → 不该有这条边");
+}
+
 // 4. 自己不能出现在 peers 里（防自环）
 {
   const g = buildGraph({ selfId: "gd3", peers, discovered });
