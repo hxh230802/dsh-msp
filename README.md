@@ -10,6 +10,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/hxh230802/dsh-msp?label=license" alt="License"></a>
   <a href="https://github.com/hxh230802/dsh-msp/commits/master"><img src="https://img.shields.io/github/last-commit/hxh230802/dsh-msp?label=last%20commit" alt="Last commit"></a>
   <img src="https://img.shields.io/badge/deps-0-brightgreen" alt="Zero dependencies">
+  <img src="https://hits.sh/github.com/hxh230802/dsh-msp.svg?label=visitors&color=0a66e4" alt="Visitors">
   <br>
   <img src="https://img.shields.io/badge/protocol-MSP-0a66e4" alt="MSP">
   <a href="https://pypi.org/project/msp-py/"><img src="https://img.shields.io/pypi/v/msp-py?label=msp-py&color=0a66e4" alt="msp-py on PyPI"></a>
