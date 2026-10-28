@@ -99,16 +99,33 @@ After a restart the left sidebar shows an **MSP** icon that opens a full page:
 
 | Section | Content |
 |---|---|
-| **Node / tool graph** | Centre is this plugin; each outer circle is an MSP node. Solid line = connected, dashed = disconnected; circle size grows with tool count, the number inside is that count |
+| **Node / tool graph** | Centre is this plugin, outer circles are MSP nodes; circle size grows with tool count, the number inside is that count. **Edges carry the evidence** — see below |
 | **Permissions & tools** | One row per node: status dot, address, enable/disable button, and the tools it advertises (parameter names; hover for descriptions). Disabling drops the node and its tools immediately |
 | **Notification switches** | Three independent toggles: approval waiting / question waiting / task finished (long tasks only) |
 | **Recent calls** | Time / node / tool / duration or error, from the last 40 calls recorded host-side |
 | **Discovery directory** | Every declaration file and its lease age (including expired ones nobody cleaned up) |
 
-Data path: the host registers three routes, the page polls every 2 s.
+### What the edges mean
+
+MSP has **no gossip**: `HELLO` exchanges a capability manifest, and there is no "who are your
+neighbours" query. A node only ever sees its own edges. So every line in the graph states how it was
+obtained, and the panel says which is which:
+
+| Edge | Meaning | Source |
+|---|---|---|
+| **solid (accent)** | we are connected to it | our own connection table — fact |
+| **green** | two peers are connected to each other | a peer self-reported it (its `ping`/`status` tool returned a peer list) |
+| **dashed grey** | two peers are probably connected | inference: same discovery directory and both connected to us |
+
+The last one is a guess and is labelled as such. Asking costs nothing but is rate limited
+(`topologyProbeMs`, default 30 s); probes only use tools with read-only-looking names
+(`ping` / `status` / `info` / `health` / `peers` / `topology`) that take no required arguments.
+
+Data path: the host registers four routes, the page polls every 2 s.
 
 ```
-GET  /msp/state   → { ok, peers[], calls[], discovered[], policy, notify, notifyIcon, hooks }
+GET  /msp/state   → { ok, peers[], calls[], discovered[], policy, notify, notifyIcon, hooks, graph }
+GET  /msp/graph   → { ok, nodes[], edges[], stats }   topology only, with per-edge evidence
 POST /msp/node    → { nodeId, enabled }   change permissions; reconnects/drops immediately
 POST /msp/notify  → { key, enabled }      or { approval|question|turnEnd: boolean }  toggle notifications
 ```

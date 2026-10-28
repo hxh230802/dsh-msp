@@ -49,9 +49,9 @@ assert.ok(waitTool.output && waitTool.output.schema, "msp_call_wait 必须带 ou
 assert.equal(typeof waitTool.output.render, "function");
 assert.equal(typeof waitTool.execute, "function");
 
-// 3. 三条路由都注册了
+// 3. 四条路由都注册了（state / node / notify / graph）
 const paths = routes.map((r) => r.path).sort();
-assert.deepEqual(paths, ["/msp/node", "/msp/notify", "/msp/state"], `路由不对: ${paths}`);
+assert.deepEqual(paths, ["/msp/graph", "/msp/node", "/msp/notify", "/msp/state"], `路由不对: ${paths}`);
 
 // 4. 事件钩子订阅了，且都带 global: true（不带就收不到别的作用域的事件）
 const byName = new Map(events.map((e) => [e.name, e]));
@@ -73,6 +73,12 @@ assert.ok(byName.has("tools/pre-execute"), "必须订阅 tools/pre-execute");
   assert.ok(parsed.notify && typeof parsed.notify.approval === "boolean", "state 必须带 notify 开关");
   assert.ok(parsed.hooks && typeof parsed.hooks.turnEnd === "number", "state 必须带钩子计数");
   assert.deepEqual(parsed.peers, [], "空目录不应有对端");
+  // 拓扑图：空目录下只有自己一个节点、零条边
+  assert.ok(parsed.graph, "state 必须带 graph");
+  assert.equal(parsed.graph.nodes.length, 1, "空目录只有自己一个节点");
+  assert.equal(parsed.graph.nodes[0].role, "self");
+  assert.equal(parsed.graph.edges.length, 0, "空目录没有边");
+  assert.equal(parsed.graph.stats.observed, 0);
   // node_id 必须唯一化并符合 MSP 文法，否则并发实例会在对端撞成同一个 peer
   assert.match(parsed.selfId, /^dsh-msp-[0-9a-f]{8}$/, `selfId 不合预期: ${parsed.selfId}`);
   // 内置鲸鱼娘图标必须真的读到了（Windows 上前导斜杠那个坑会在这里现形）

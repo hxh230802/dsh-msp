@@ -84,16 +84,31 @@ dsh --profile <profile> --dump-config | grep -A8 'id: dsh-msp'   # 确认配置�
 
 | 区块 | 内容 |
 |---|---|
-| **节点/工具关系图** | 中心是本插件，外围每个 CIRCLE 是一个 MSP 节点；实线 = 已连接，虚线 = 断开；圆的大小随工具数增长，圈内数字是工具数 |
+| **节点/工具关系图** | 中心是本插件，外围每个 CIRCLE 是一个 MSP 节点；圆的大小随工具数增长，圈内数字是工具数。**连线的含义见下节** |
 | **权限与工具** | 每个节点一行：状态点、地址、启用/禁用按钮、该节点宣告的工具（含参数名，hover 看描述）。点"已启用"→ 断开该节点并摘掉它的工具 |
 | **通知开关** | 三个独立开关：有操作等我确认 / 模型在问我问题 / 任务完成（仅长任务） |
 | **最近调用** | 时间 / 节点 / 工具名 / 耗时或错误，来自 host 侧记录的最后 40 条 |
 | **发现目录** | 声明文件里的全部节点与租约年龄（含过期未清理的） |
 
-数据通路：host 注册三条路由，页面每 2 秒轮询一次。
+### 连线是怎么来的
+
+MSP **没有 gossip**：`HELLO` 只交换能力清单，协议里没有"你的邻居是谁"这种查询，一个节点永远只看得见自己的边。所以图里每条线都要标明出处：
+
+| 线 | 含义 | 依据 |
+|---|---|---|
+| **实线（蓝）** | 我们连上了它 | 自己的连接表 —— 事实 |
+| **绿线** | 两个对端彼此相连 | 对端自报（它的 `ping`/`status` 之类工具回了一个 peers 列表） |
+| **虚线（灰）** | 两个对端很可能相连 | 推断：同一个发现目录、且都连上了我们 |
+
+最后一种是猜的，所以画成虚线。探测本身很便宜但要节流（`topologyProbeMs`，默认 30 秒），
+而且只使用名字看起来只读（`ping` / `status` / `info` / `health` / `peers` / `topology`）
+且**没有必填参数**的工具。
+
+数据通路：host 注册四条路由，页面每 2 秒轮询一次。
 
 ```
-GET  /msp/state   → { ok, peers[], calls[], discovered[], policy, notify }
+GET  /msp/state   → { ok, peers[], calls[], discovered[], policy, notify, graph }
+GET  /msp/graph   → { ok, nodes[], edges[], stats }   只看拓扑，每条边带出处
 POST /msp/node    → { nodeId, enabled }   改权限，立刻重连/断开
 POST /msp/notify  → { key, enabled }      或 { approval|question|turnEnd: boolean }  开关通知
 ```
