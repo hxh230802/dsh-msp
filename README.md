@@ -1,5 +1,21 @@
 # dsh-msp
 
+<p align="center">
+  <img src="assets/banner.png" alt="dsh-msp — every MSP node becomes a tool for DeepSeek Harness">
+</p>
+
+<p align="center">
+  <a href="https://github.com/hxh230802/dsh-msp/stargazers"><img src="https://img.shields.io/github/stars/hxh230802/dsh-msp?style=flat&label=stars" alt="GitHub stars"></a>
+  <img src="https://img.shields.io/badge/version-0.1.3-0a66e4" alt="Version 0.1.3">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/hxh230802/dsh-msp?label=license" alt="License"></a>
+  <a href="https://github.com/hxh230802/dsh-msp/commits/master"><img src="https://img.shields.io/github/last-commit/hxh230802/dsh-msp?label=last%20commit" alt="Last commit"></a>
+  <img src="https://img.shields.io/badge/deps-0-brightgreen" alt="Zero dependencies">
+  <br>
+  <img src="https://img.shields.io/badge/protocol-MSP-0a66e4" alt="MSP">
+  <a href="https://pypi.org/project/msp-py/"><img src="https://img.shields.io/pypi/v/msp-py?label=msp-py&color=0a66e4" alt="msp-py on PyPI"></a>
+  <img src="https://img.shields.io/badge/tools-msp_*%20%2B%20msp_call_wait-0a66e4" alt="Tools">
+</p>
+
 Expose the tools of **every node on your local [MSP](https://github.com/hxh230802/MSP) network** as
 DeepSeek Harness tools, so the agent can call them directly:
 

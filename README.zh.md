@@ -1,5 +1,21 @@
 # dsh-msp
 
+<p align="center">
+  <img src="assets/banner.png" alt="dsh-msp — 本地每个 MSP 节点的工具，都变成 agent 能直接调的">
+</p>
+
+<p align="center">
+  <a href="https://github.com/hxh230802/dsh-msp/stargazers"><img src="https://img.shields.io/github/stars/hxh230802/dsh-msp?style=flat&label=stars" alt="GitHub stars"></a>
+  <img src="https://img.shields.io/badge/version-0.1.3-0a66e4" alt="版本 0.1.3">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/hxh230802/dsh-msp?label=license" alt="许可"></a>
+  <a href="https://github.com/hxh230802/dsh-msp/commits/master"><img src="https://img.shields.io/github/last-commit/hxh230802/dsh-msp?label=last%20commit" alt="最近提交"></a>
+  <img src="https://img.shields.io/badge/deps-0-brightgreen" alt="零依赖">
+  <br>
+  <img src="https://img.shields.io/badge/protocol-MSP-0a66e4" alt="MSP">
+  <a href="https://pypi.org/project/msp-py/"><img src="https://img.shields.io/pypi/v/msp-py?label=msp-py&color=0a66e4" alt="PyPI 上的 msp-py"></a>
+  <img src="https://img.shields.io/badge/tools-msp_*%20%2B%20msp_call_wait-0a66e4" alt="工具">
+</p>
+
 把**本机 MSP 网络上每个节点**的工具暴露成 DeepSeek Harness 工具，agent 直接调用。
 
 [English](README.md) | 中文
